@@ -16,16 +16,16 @@ abstract class Controller
      * @template TDto of DtoAbstract
      *
      * @param  array<string, mixed>  $payload
-     * @param  class-string<ValidatorAbstract>  $validator
+     * @param  ValidatorAbstract|class-string<ValidatorAbstract>  $validator
      * @param  class-string<TDto>  $dto
      * @return TDto
      *
      * @throws ValidationException
      */
-    protected function toDto(array $payload, string $validator, string $dto): DtoAbstract
+    protected function toDto(array $payload, ValidatorAbstract|string $validator, string $dto): DtoAbstract
     {
-        $validated = (new $validator)->validate($payload);
+        $validator = is_string($validator) ? new $validator : $validator;
 
-        return new $dto($validated);
+        return new $dto($validator->validate($payload));
     }
 }
