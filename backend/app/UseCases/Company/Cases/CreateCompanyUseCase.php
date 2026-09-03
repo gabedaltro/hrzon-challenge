@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\UseCases\Company\Cases;
+
+use App\Models\Company;
+use App\UseCases\Company\DTO\CreateCompanyDto;
+use App\UseCases\Company\Output\CompanyOutput;
+
+class CreateCompanyUseCase
+{
+    /** @return array<string, mixed> */
+    public function execute(CreateCompanyDto $dto): array
+    {
+        $company = Company::create($dto->toArray());
+
+        return ['data' => CompanyOutput::make($company->refresh())];
+    }
+}
