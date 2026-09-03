@@ -47,6 +47,25 @@ final class Cnpj implements ValidationRule
         return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $cnpj) ?? '');
     }
 
+    /** Aplica a máscara XX.XXX.XXX/XXXX-XX; devolve o valor cru se não tiver 14 posições. */
+    public static function format(string $cnpj): string
+    {
+        $cnpj = self::sanitize($cnpj);
+
+        if (strlen($cnpj) !== 14) {
+            return $cnpj;
+        }
+
+        return sprintf(
+            '%s.%s.%s/%s-%s',
+            substr($cnpj, 0, 2),
+            substr($cnpj, 2, 3),
+            substr($cnpj, 5, 3),
+            substr($cnpj, 8, 4),
+            substr($cnpj, 12, 2),
+        );
+    }
+
     /** Recebe as 12 primeiras posições e devolve o CNPJ completo com os 2 DV. */
     public static function complete(string $base): string
     {
