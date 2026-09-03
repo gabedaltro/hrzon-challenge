@@ -24,7 +24,7 @@ abstract class Controller
      */
     protected function toDto(array $payload, string $validator, string $dto): DtoAbstract
     {
-        $validated = (new $validator())->validate($payload);
+        $validated = (new $validator)->validate($payload);
 
         return new $dto($validated);
     }
