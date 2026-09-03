@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\UseCases\Product\Cases;
+
+use App\Enums\Status;
+use App\Exceptions\BusinessRuleException;
+use App\Models\Product;
+use App\UseCases\Product\Output\ProductOutput;
+
+class InactivateProductUseCase
+{
+    /** @return array<string, mixed> */
+    public function execute(Product $product): array
+    {
+        if ($product->trashed()) {
+            throw new BusinessRuleException('Não é possível inativar um produto excluído.');
+        }
+
+        if (! $product->isActive()) {
+            throw new BusinessRuleException('O produto já está inativo.');
+        }
+
+        $product->update(['status' => Status::Inactive]);
+
+        return ['data' => ProductOutput::make($product->refresh())];
+    }
+}
