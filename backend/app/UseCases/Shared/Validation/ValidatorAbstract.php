@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 
 abstract class ValidatorAbstract
 {
+    protected array $payload = [];
+
     /** @return array<string, mixed> */
     abstract protected function rules(): array;
 
@@ -25,6 +27,17 @@ abstract class ValidatorAbstract
     }
 
     /**
+     * Normaliza o payload antes da validação (ex.: tirar máscara).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function prepare(array $payload): array
+    {
+        return $payload;
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      *
@@ -32,8 +45,10 @@ abstract class ValidatorAbstract
      */
     public function validate(array $payload): array
     {
+        $this->payload = $this->prepare($payload);
+
         return Validator::make(
-            $payload,
+            $this->payload,
             $this->rules(),
             $this->messages(),
             $this->attributes(),
