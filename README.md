@@ -9,15 +9,15 @@ quando permitida. Sem autenticação.
 | Camada | Tecnologia |
 |---|---|
 | Back-end | Laravel 11 · PHP 8.2 · MySQL/MariaDB |
-| Front-end | React 18 · Vite · TypeScript · MUI *(em desenvolvimento)* |
+| Front-end | React 18 · Vite 5 · TypeScript · Material UI 5 |
 
 ## Estrutura do repositório
 
 ```
 hrzon/
 ├── backend/    API REST em Laravel
-└── frontend/   SPA em React 
-```
+└── frontend/   SPA em React
+```ss
 
 ---
 
@@ -61,7 +61,7 @@ cascata), além de produtos em estados individuais.
 ### Testes
 
 ```bash
-composer test     # php artisan test  — 53 testes
+composer test     # php artisan test  — 57 testes
 composer lint     # ./vendor/bin/pint — padronização (preset Laravel)
 ```
 
@@ -106,7 +106,7 @@ que a regra vai aceitar.
 
 | Método | Rota | Ação |
 |---|---|---|
-| `GET` | `/api/companies` | Listar. Filtros: `name`, `status` (`active`/`inactive`), `trashed` (`without` padrão / `with` / `only`), `page`, `per_page`. |
+| `GET` | `/api/companies` | Listar. Filtros: `name`, `status` (`active`/`inactive`), `trashed` (`without` padrão / `with` / `only`), `page`, `per_page`. Ordenação: `order_by` (`name` padrão, `cnpj`, `email`, `phone`, `products_count`, `status`, `created_at`) e `direction` (`asc`/`desc`). |
 | `POST` | `/api/companies` | Criar. |
 | `GET` | `/api/companies/{id}` | Ver (resolve mesmo se excluída). |
 | `PUT` | `/api/companies/{id}` | Editar dados (não altera status). |
@@ -124,7 +124,7 @@ normalizados antes da validação (o `unique` do CNPJ compara já sem máscara).
 
 | Método | Rota | Ação |
 |---|---|---|
-| `GET` | `/api/products` | Listar. Filtros: `name`, `status`, `company_id`, `trashed`, `page`, `per_page`. |
+| `GET` | `/api/products` | Listar. Filtros: `name`, `status`, `company_id`, `trashed`, `page`, `per_page`. Ordenação: `order_by` (`name` padrão, `internal_code`, `company`, `price`, `status`, `created_at`) e `direction`. |
 | `POST` | `/api/products` | Criar (empresa precisa estar ativa e não excluída). |
 | `GET` | `/api/products/{id}` | Ver. |
 | `PUT` | `/api/products/{id}` | Editar dados e vínculo de empresa (não altera status). |
@@ -230,6 +230,104 @@ curl -X POST http://localhost:8000/api/products \
 
 ---
 
+## Front-end
+
+SPA em React que consome a API. Duas áreas — **Empresas** e **Produtos** — cada uma com
+listagem filtrável, cadastro, edição e as ações de estado (inativar, reativar, excluir,
+restaurar, excluir definitivamente).
+
+### Requisitos
+
+- Node 20+
+- Yarn
+
+### Como rodar
+
+```bash
+cd frontend
+yarn install
+yarn dev          # http://localhost:5173
+```
+
+O endereço da API fica em `VITE_API_URL` (`.env.development`, padrão
+`http://localhost:8000/api`). O back-end precisa estar no ar; o CORS já libera a origem
+`http://localhost:5173`.
+
+```bash
+yarn build     # tsc + build de produção em dist/
+yarn lint      # ESLint com Prettier
+```
+
+### Estrutura de pastas
+
+```
+frontend/src/
+├── components/     Componentes compartilhados (tabela, filtros, diálogos, máscaras, feedback)
+├── config/theme.ts Tema do Material UI com a identidade Horizon
+├── helpers/        Formatação e validação puras (CNPJ, telefone, moeda, erros da API)
+├── hooks/          Contextos e hooks de app, mensageria, modo de exibição e busca de empresas
+├── pages/
+│   ├── companies/  Listagem, ações e cadastro de empresas
+│   ├── products/   Listagem, ações e cadastro de produtos
+│   └── error/
+├── routes/         Rotas e o Router ligado ao history
+├── services/       Instância do axios e o history compartilhado
+└── types/          Tipos dos recursos da API
+```
+
+Cada página segue o mesmo desenho:
+
+```
+pages/<recurso>/
+├── <Recurso>.tsx              Monta a página e liga os pedaços
+├── <Recurso>FilterBox.tsx     Filtros da listagem
+├── template/                  Colunas da tabela
+├── hooks/                     Busca paginada, contexto e execução das ações
+├── actions/                   Textos das confirmações, chamadas à API e menu de ações
+├── list/table/                Visão em tabela
+├── list/module/               Visão em cards
+└── registration/              Formulário, validação e as telas de novo e edição
+```
+
+### Decisões
+
+**As ações vêm do servidor.** Cada registro chega com um bloco `permissions`, e o menu de
+ações monta só o que está liberado ali. Um produto de empresa inativa não mostra "Reativar";
+uma empresa excluída que ainda tem produtos não mostra "Excluir definitivamente". A interface
+não recalcula a regra — ela obedece à resposta da API, então não existe ação que o servidor
+vá recusar depois.
+
+**As duas dimensões aparecem juntas.** A coluna Situação mostra o status operacional e, quando
+é o caso, também o selo de excluído — um registro pode estar ativo e excluído ao mesmo tempo.
+Linhas de registros excluídos entram com menos peso visual.
+
+**Toda confirmação diz o que vai acontecer.** Inativar uma empresa avisa quantos produtos
+ficam inativos junto; excluir avisa quantos são excluídos em cascata; reativar lembra que os
+produtos não voltam sozinhos; a exclusão definitiva é a única com aviso de irreversível e
+botão vermelho.
+
+**Validação nos dois lados, sem duplicar a verdade.** O formulário valida com yup para apontar
+o erro no campo e devolver o foco antes de gastar uma ida à API — incluindo o dígito
+verificador do CNPJ alfanumérico. Quando o servidor recusa (CNPJ ou e-mail duplicado, código
+interno repetido na empresa), a mensagem dele é aplicada no campo correspondente.
+
+**Paginação, filtros e ordenação no servidor.** A listagem manda `name`, `status`, `trashed`,
+`company_id`, `order_by`, `direction`, `page` e `per_page` para a API e usa o `meta` da resposta;
+o filtro por nome tem espera antes de disparar. Nada é filtrado nem ordenado em memória — ordenar
+uma página já paginada daria uma ordem que só vale para as linhas visíveis. Clicar no cabeçalho
+alterna asc/desc e volta para a primeira página; as colunas aceitas são uma lista fechada no
+servidor, e a de produtos por empresa ordena pelo nome da empresa vinculada.
+
+**Sem estado global.** O que existe de compartilhado é a mensageria (snackbar) e a largura da
+janela. O resto vive na página que usa, em contextos locais.
+
+**Identidade visual.** O amarelo `#FBE509` é a cor de ação (botões primários, indicador do menu),
+sempre com texto preto e nunca como texto sobre branco; o cabeçalho é grafite `#141414` com o
+logotipo aplicado sem distorção nem recoloração. A listagem vira cards abaixo de 960px, o menu
+vira drawer no mobile, e o foco de teclado tem contorno visível.
+
+---
+
 ## Status do projeto
 
 - [x] **Etapa 1** — Fundação: ambiente, arquitetura base, tratamento de erros,
@@ -240,6 +338,8 @@ curl -X POST http://localhost:8000/api/products \
   exclusão lógica/física com cascata; testes de feature.
 - [x] **Etapa 4** — CRUD de Produtos: 9 endpoints + empresas selecionáveis, regras de
   vínculo, reativação e restauração condicionadas ao estado da empresa; testes.
-- [x] **Etapa 5** — Cobertura de testes ampliada (53 testes / 163 asserções): guardas
+- [x] **Etapa 5** — Cobertura de testes ampliada (57 testes / 180 asserções): guardas
   de estado, cascatas, paginação, flags de `permissions`, formato de erro, CORS.
-- [ ] **Etapa 6** — Front-end.
+- [x] **Etapa 6** — Front-end: listagens com filtros e paginação da API, ações guiadas
+  pelo bloco `permissions`, confirmações com o impacto de cada operação, formulários com
+  validação de campo e identidade visual Horizon.
