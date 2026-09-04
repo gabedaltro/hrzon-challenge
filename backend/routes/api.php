@@ -23,7 +23,7 @@ use App\Http\Controllers\Product\ShowProductController;
 use App\Http\Controllers\Product\UpdateProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', fn() => response()->json(['status' => 'ok']));
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 Route::prefix('companies')->group(function () {
     Route::get('/', ListCompaniesController::class);

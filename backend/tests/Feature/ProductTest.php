@@ -42,6 +42,34 @@ class ProductTest extends TestCase
             ->assertOk()->assertJsonPath('meta.total', 1);
     }
 
+    public function test_listing_can_be_sorted_by_company_name_and_by_price(): void
+    {
+        $alpha = Company::factory()->create(['name' => 'Alpha Distribuidora']);
+        $zeta = Company::factory()->create(['name' => 'Zeta Distribuidora']);
+
+        Product::factory()->for($zeta)->create(['name' => 'Cabo', 'price' => '10.00']);
+        Product::factory()->for($alpha)->create(['name' => 'Mouse', 'price' => '90.00']);
+
+        $this->getJson('/api/products?order_by=company&direction=asc')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Mouse');
+
+        $this->getJson('/api/products?order_by=company&direction=desc')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Cabo');
+
+        $this->getJson('/api/products?order_by=price&direction=desc')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Mouse');
+    }
+
+    public function test_listing_rejects_an_unknown_sort_column(): void
+    {
+        $this->getJson('/api/products?order_by=company_id')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('order_by');
+    }
+
     public function test_creates_product_for_an_active_company(): void
     {
         $company = Company::factory()->create();

@@ -55,6 +55,29 @@ class CompanyTest extends TestCase
             ->assertJsonPath('data.0.name', 'Padaria Norte');
     }
 
+    public function test_listing_can_be_sorted_by_an_allowed_column(): void
+    {
+        Company::factory()->create(['name' => 'Alpha', 'email' => 'contato@gama.com']);
+        Company::factory()->create(['name' => 'Beta', 'email' => 'contato@alpha.com']);
+        Company::factory()->create(['name' => 'Gama', 'email' => 'contato@beta.com']);
+
+        $this->getJson('/api/companies?order_by=email&direction=asc')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Beta')
+            ->assertJsonPath('data.2.name', 'Alpha');
+
+        $this->getJson('/api/companies?order_by=name&direction=desc')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Gama');
+    }
+
+    public function test_listing_rejects_an_unknown_sort_column(): void
+    {
+        $this->getJson('/api/companies?order_by=deleted_at')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('order_by');
+    }
+
     public function test_creates_company_and_stores_normalised_cnpj(): void
     {
         $response = $this->postJson('/api/companies', $this->validPayload([

@@ -10,6 +10,9 @@ use Illuminate\Validation\Rule;
 
 class ListProductsValidator extends ValidatorAbstract
 {
+    /** Colunas liberadas para ordenação; `company` ordena pelo nome da empresa vinculada. */
+    public const SORTABLE = ['name', 'internal_code', 'company', 'price', 'status', 'created_at'];
+
     protected function rules(): array
     {
         return [
@@ -19,6 +22,8 @@ class ListProductsValidator extends ValidatorAbstract
             'trashed' => ['sometimes', Rule::in(['without', 'with', 'only'])],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'order_by' => ['sometimes', 'nullable', Rule::in(self::SORTABLE)],
+            'direction' => ['sometimes', Rule::in(['asc', 'desc'])],
         ];
     }
 }

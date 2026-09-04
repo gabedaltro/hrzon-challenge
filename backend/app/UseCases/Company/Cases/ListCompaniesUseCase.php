@@ -31,7 +31,10 @@ class ListCompaniesUseCase
             $query->where('status', $dto->status->value);
         }
 
-        $page = $query->orderBy('name')->paginate(perPage: $dto->per_page, page: $dto->page);
+        // A coluna já foi restringida pelo validator; o id desempata para a paginação ficar estável.
+        $query->orderBy($dto->order_by ?? 'name', $dto->direction)->orderBy('id');
+
+        $page = $query->paginate(perPage: $dto->per_page, page: $dto->page);
 
         return [
             'data' => array_map(CompanyOutput::make(...), $page->items()),
