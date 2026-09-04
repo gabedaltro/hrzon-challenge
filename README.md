@@ -61,8 +61,8 @@ cascata), além de produtos em estados individuais.
 ### Testes
 
 ```bash
-composer test     # php artisan test  — 57 testes
-composer lint     # ./vendor/bin/pint — padronização (preset Laravel)
+composer test
+composer lint
 ```
 
 Os testes rodam contra o banco `hrzon_test` (configurado em `phpunit.xml`), isolado
